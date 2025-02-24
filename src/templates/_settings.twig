@@ -1,0 +1,133 @@
+{% extends "_layouts/cp" %}
+{% set title = "Content Review Settings"|t('content-reminder') %}
+{% set fullPageForm = true %}
+
+{% import '_includes/forms.twig' as forms %}
+
+{% block content %}
+    {{ actionInput('plugins/save-plugin-settings') }}
+    {{ redirectInput('content-reminder/settings') }}
+    {{ hiddenInput('pluginHandle', 'content-reminder') }}
+    {{ csrfInput() }}
+
+    {{ forms.textField({
+        first: true,
+        label: "Default Review Period"|t('content-reminder'),
+        instructions: "Number of days between content reviews by default"|t('content-reminder'),
+        id: 'defaultReviewDays',
+        name: 'settings[defaultReviewDays]',
+        type: 'number',
+        value: settings.defaultReviewDays,
+        required: true,
+        min: 1,
+        warning: false
+    }) }}
+
+    {{ forms.textField({
+        label: "Warning Threshold"|t('content-reminder'),
+        instructions: "Number of days before the review date to start showing warnings"|t('content-reminder'),
+        id: 'warningThresholdDays',
+        name: 'settings[warningThresholdDays]',
+        type: 'number',
+        value: settings.warningThresholdDays,
+        required: true,
+        min: 1,
+        warning: false
+    }) }}
+
+    <hr>
+
+    <h2>{{ "Notification Settings"|t('content-reminder') }}</h2>
+    <div class="readable">
+        <p>{{ "Configure how users will be notified about content that needs review."|t('content-reminder') }}</p>
+    </div>
+
+    {{ forms.lightswitchField({
+        label: "Enable CMS Notifications"|t('content-reminder'),
+        instructions: "Show notifications in the CMS when content needs review"|t('content-reminder'),
+        id: 'enableCmsNotifications',
+        name: 'settings[enableCmsNotifications]',
+        on: settings.enableCmsNotifications,
+        toggle: '.cms-notification-settings',
+        warning: false
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "Enable Email Notifications"|t('content-reminder'),
+        instructions: "Send email notifications when content needs review"|t('content-reminder'),
+        id: 'enableEmailNotifications',
+        name: 'settings[enableEmailNotifications]',
+        on: settings.enableEmailNotifications,
+        toggle: '.email-notification-settings',
+        warning: false
+    }) }}
+
+    <div class="email-notification-settings {{ not settings.enableEmailNotifications ? 'hidden' }}">
+        {{ forms.textAreaField({
+            label: "Additional Email Recipients"|t('content-reminder'),
+            instructions: "Additional email addresses to notify (one per line)"|t('content-reminder'),
+            id: 'additionalEmailRecipients',
+            name: 'settings[additionalEmailRecipients]',
+            value: settings.additionalEmailRecipients|join("\n"),
+            rows: 4,
+            warning: false
+        }) }}
+    </div>
+
+    {{ forms.lightswitchField({
+        label: "Enable Slack Notifications"|t('content-reminder'),
+        instructions: "Send notifications to Slack when content needs review"|t('content-reminder'),
+        id: 'enableSlackNotifications',
+        name: 'settings[enableSlackNotifications]',
+        on: settings.enableSlackNotifications,
+        toggle: '#slackSettings',
+        warning: false
+    }) }}
+
+    <div id="slackSettings" class="{{ not settings.enableSlackNotifications ? 'hidden' }}">
+        {{ forms.textField({
+            label: "Slack Webhook URL"|t('content-reminder'),
+            instructions: "The webhook URL for your Slack workspace"|t('content-reminder'),
+            id: 'slackWebhookUrl',
+            name: 'settings[slackWebhookUrl]',
+            value: settings.slackWebhookUrl,
+            required: settings.enableSlackNotifications,
+            warning: false
+        }) }}
+    </div>
+
+    <hr>
+
+    <h2>{{ "Section-Specific Settings"|t('content-reminder') }}</h2>
+    <div class="readable">
+        <p>{{ "Configure different review periods for specific sections. Leave empty to use the default review period."|t('content-reminder') }}</p>
+    </div>
+
+    {% for section in craft.app.entries.getAllSections() %}
+        {{ forms.textField({
+            label: section.name|t('site'),
+            instructions: "Review period in days for #{section.name}"|t('content-reminder'),
+            id: 'sectionReviewDays-' ~ section.handle,
+            name: 'settings[sectionReviewDays][' ~ section.handle ~ ']',
+            type: 'number',
+            value: settings.sectionReviewDays[section.handle] ?? '',
+            min: 1,
+            placeholder: settings.defaultReviewDays,
+            warning: false
+        }) }}
+    {% endfor %}
+{% endblock %}
+
+{% css %}
+hr {
+    margin: 24px -24px;
+}
+
+h2 {
+    margin: 24px 0;
+}
+
+.readable {
+    margin-bottom: 24px;
+}
+{% endcss %}

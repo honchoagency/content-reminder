@@ -1,0 +1,136 @@
+{% if sections|length %}
+    <h2>{{ "Sections Needing Review"|t('content-reminder') }}</h2>
+    <table class="data fullwidth">
+        <thead>
+            <tr>
+                <th>{{ "Section"|t('content-reminder') }}</th>
+                <th>{{ "Review Period"|t('content-reminder') }}</th>
+                <th>{{ "Next Review"|t('content-reminder') }}</th>
+                <th>{{ "Last Reviewed"|t('content-reminder') }}</th>
+                <th>{{ "Status"|t('content-reminder') }}</th>
+                <th class="thin"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for section in sections %}
+                {% set daysUntilReview = date(section.nextReviewDate).diff(date()).invert ? date(section.nextReviewDate).diff(date()).days : -date(section.nextReviewDate).diff(date()).days %}
+                {% set isOverdue = section.nextReviewDate <= date() %}
+                {% set isApproaching = section.getIsApproachingReview() %}
+                {% set statusColor = isOverdue ? 'red' : (daysUntilReview <= 3 ? 'orange' : (daysUntilReview <= 7 ? 'yellow' : 'green')) %}
+
+                <tr>
+                    <td>
+                        <strong>{{ section.section.name }}</strong>
+                    </td>
+                    <td>
+                        {{ "Every {days} days"|t('content-reminder', { days: section.reviewDays }) }}
+                    </td>
+                    <td>
+                        {{ section.nextReviewDate|date('short') }}
+                    </td>
+                    <td>
+                        {% if section.lastReviewedAt %}
+                            {{ section.lastReviewedAt|date('short') }}
+                            {% set reviewer = section.getReviewer() %}
+                            {% if reviewer %}
+                                <div class="light">{{ "by {name}"|t('content-reminder', { name: reviewer }) }}</div>
+                            {% else %}
+                                <div class="light">{{ "by Unknown User"|t('content-reminder') }}</div>
+                            {% endif %}
+                        {% else %}
+                            <span class="light">{{ "Never"|t('content-reminder') }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if isOverdue %}
+                            <span class="review-status review-status-red">
+                                {{ "Due"|t('content-reminder') }}
+                            </span>
+                        {% else %}
+                            <span class="review-status review-status-{{ statusColor }}">
+                                {{ daysUntilReview }}
+                                <span class="review-status-label">{{ "days"|t('content-reminder') }}</span>
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="thin">
+                        <div class="btngroup">
+                            <a class="btn small" href="{{ cpUrl('entries/' ~ section.section.handle) }}">
+                                {{ "View Entries"|t('content-reminder') }}
+                            </a>
+                            <a class="btn small" data-review-action="mark-reviewed" data-section-id="{{ section.sectionId }}">
+                                {{ "Mark Reviewed"|t('content-reminder') }}
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>{{ "No sections need review at this time."|t('content-reminder') }}</p>
+{% endif %}
+
+{% js %}
+    $(document).ready(function() {
+        $('[data-review-action="mark-reviewed"]').on('click', function(e) {
+            e.preventDefault();
+            var $btn = $(this);
+            var sectionId = $btn.data('section-id');
+
+            Craft.postActionRequest('content-reminder/sections/mark-reviewed', { sectionId: sectionId }, function(response) {
+                if (response.success) {
+                    Craft.cp.displayNotice(Craft.t('content-reminder', 'Section marked as reviewed'));
+                    window.location.reload();
+                } else {
+                    Craft.cp.displayError(Craft.t('content-reminder', 'Could not mark section as reviewed'));
+                }
+            });
+        });
+    });
+{% endjs %}
+
+{% css %}
+.review-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.review-status-label {
+    font-size: 12px;
+    margin-left: 4px;
+    font-weight: normal;
+    opacity: 0.8;
+}
+
+.review-status-green {
+    background-color: #E3F1DF;
+    color: #1F7A1F;
+}
+
+.review-status-yellow {
+    background-color: #FFF4D1;
+    color: #8D6708;
+}
+
+.review-status-orange {
+    background-color: #FFE9D1;
+    color: #AF4600;
+}
+
+.review-status-red {
+    background-color: #F9E5E6;
+    color: #D0021B;
+}
+
+.content-reminder-widget .btngroup {
+    white-space: nowrap;
+}
+{% endcss %}

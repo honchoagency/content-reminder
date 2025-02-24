@@ -1,0 +1,46 @@
+{
+  "name": "honchoagency/content-reminder",
+  "description": "A Craft CMS plugin for managing content review cycles",
+  "type": "craft-plugin",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "keywords": [
+    "craft",
+    "cms",
+    "craftcms",
+    "craft-plugin",
+    "content reminder"
+  ],
+  "support": {
+    "docs": "https://github.com/honchoagency/content-reminder/blob/master/README.md",
+    "issues": "https://github.com/honchoagency/content-reminder/issues"
+  },
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Honcho Agency",
+      "homepage": "https://honcho.agency"
+    }
+  ],
+  "require": {
+    "php": ">=8.0.2",
+    "craftcms/cms": "^4.0.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "honchoagency\\contentreminder\\": "src/"
+    }
+  },
+  "extra": {
+    "name": "Content Reminder",
+    "handle": "content-reminder",
+    "developer": "Honcho Agency",
+    "developerUrl": "https://honcho.agency",
+    "documentationUrl": "https://github.com/honchoagency/content-reminder/blob/master/README.md",
+    "changelogUrl": "https://raw.githubusercontent.com/honchoagency/content-reminder/master/CHANGELOG.md",
+    "components": {
+      "contentReminderService": "honchoagency\\contentreminder\\services\\ContentReminderService"
+    },
+    "class": "honchoagency\\contentreminder\\ContentReminder"
+  }
+}

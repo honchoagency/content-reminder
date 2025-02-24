@@ -1,0 +1,38 @@
+{% import "_includes/forms" as forms %}
+
+<div class="meta content-reminder-meta">
+    <div class="data">
+        <h5 class="heading">{{ "Review Date"|t('content-reminder') }}</h5>
+        <div class="value">
+            {% if reviewSection and reviewSection.nextReviewDate %}
+                {{ reviewSection.nextReviewDate|date('short') }}
+                {% if reviewSection.getNeedsReview() %}
+                    <span class="status off"></span>
+                {% elseif reviewSection.getIsApproachingReview() %}
+                    <span class="status pending"></span>
+                {% else %}
+                    <span class="status on"></span>
+                {% endif %}
+            {% else %}
+                {{ "Not set"|t('content-reminder') }}
+            {% endif %}
+        </div>
+    </div>
+
+    {% if reviewSection and reviewSection.lastReviewedBy %}
+        <div class="data">
+            <h5 class="heading">{{ "Last Reviewed"|t('content-reminder') }}</h5>
+            <div class="value">
+                <div class="light">{{ reviewSection.lastReviewedAt|date('short') }}</div>
+            </div>
+        </div>
+    {% endif %}
+
+{% css %}
+.content-reminder-meta .status {
+    margin-left: 5px;
+}
+.content-reminder-meta .btn {
+    margin-top: 10px;
+}
+{% endcss %}

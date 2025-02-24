@@ -1,0 +1,8 @@
+{% extends "_layouts/cp" %}
+{% set title = "Content Review Dashboard"|t('content-reminder') %}
+
+{% block content %}
+    {% include "content-reminder/_widgets/review-dashboard" with {
+        sections: sections
+    } %}
+{% endblock %}

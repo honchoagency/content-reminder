@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ "Content Review Needed"|t('content-reminder') }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #1f1f1f;
+            margin: 0 0 20px;
+            font-size: 24px;
+            font-weight: 500;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #e3e5e8;
+            text-align: left;
+        }
+        th {
+            background: #f3f7fc;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #0B69A3;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .footer {
+            color: #8f98a3;
+            font-size: 0.9em;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ "Content Review Needed"|t('content-reminder') }}</h1>
+
+    <p>{{ "The following section needs to be reviewed:"|t('content-reminder') }}</p>
+
+    <table>
+        <tr>
+            <th>{{ "Section"|t('content-reminder') }}</th>
+            <td>{{ section.section.name }}</td>
+        </tr>
+        <tr>
+            <th>{{ "Review Due"|t('content-reminder') }}</th>
+            <td>{{ section.nextReviewDate|date('short') }}</td>
+        </tr>
+        {% if section.lastReviewedAt %}
+            <tr>
+                <th>{{ "Last Reviewed"|t('content-reminder') }}</th>
+                <td>
+                    {{ section.lastReviewedAt|date('short') }}
+                    {% set reviewer = section.getReviewer() %}
+                    {% if reviewer %}
+                        {{ "by {name}"|t('content-reminder', { name: reviewer }) }}
+                    {% endif %}
+                </td>
+            </tr>
+        {% endif %}
+    </table>
+
+    <p>
+        <a href="{{ siteUrl ~ cpUrl }}" class="button">
+            {{ "View Content Review Dashboard"|t('content-reminder') }}
+        </a>
+    </p>
+
+    <p class="footer">
+        {{ "This is an automated notification from your content review system."|t('content-reminder') }}
+    </p>
+</body>
+</html>
