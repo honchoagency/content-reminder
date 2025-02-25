@@ -3,16 +3,18 @@ namespace honchoagency\contentreminder\jobs;
 
 use Craft;
 use craft\queue\BaseJob;
+use honchoagency\contentreminder\ContentReminder;
 
 class ContentReminderCheckJob extends BaseJob
 {
     public function execute($queue): void
     {
         try {
-            // Add your content checking logic here
-            // This is where you'll implement the actual content reminder check
+            Craft::info('Starting content reminder check job', __METHOD__);
             
-            // For now, just a placeholder that does nothing
+            ContentReminder::getInstance()->notifications->sendPendingReviewNotifications();
+            
+            Craft::info('Completed content reminder check job', __METHOD__);
             $this->setProgress($queue, 1);
         } catch (\Throwable $e) {
             Craft::error('Error executing ContentReminderCheckJob: ' . $e->getMessage(), __METHOD__);

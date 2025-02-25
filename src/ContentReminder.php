@@ -87,22 +87,29 @@ class ContentReminder extends Plugin
                         return;
                     }
 
-                    // Get overdue sections
+                    // Get settings
+                    $settings = $this->getSettings();
+                    $warningThreshold = (int)$settings->warningThresholdDays;
+                    
+                    // Get sections needing review
                     $widget = new ReviewDashboardWidget();
                     $sections = $widget->getSectionsNeedingReview();
-                    $overdueSections = array_filter($sections, function($section) {
-                        return $section->nextReviewDate <= new \DateTime();
+                    
+                    // Check for sections within warning threshold
+                    $warningDate = (new \DateTime())->modify("+{$warningThreshold} days");
+                    $warningSections = array_filter($sections, function($section) use ($warningDate) {
+                        return $section->nextReviewDate <= $warningDate;
                     });
 
-                    if (!empty($overdueSections)) {
+                    if (!empty($warningSections)) {
                         $alertHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2zm0-6h2v4h-2z" fill="#CF1124"/>
                         </svg>';
 
-                        $numSections = count($overdueSections);
+                        $numSections = count($warningSections);
                         $message = $numSections === 1
-                            ? "1 section is due a content reminder"
-                            : "$numSections sections is due a content reminder";
+                            ? "1 section needs review soon"
+                            : "$numSections sections need review soon";
 
                         $url = Craft::$app->getConfig()->getGeneral()->cpTrigger . '/content-reminder';
                         $alertHTML .= ' <strong>' . $message . '</strong>';
@@ -180,12 +187,22 @@ class ContentReminder extends Plugin
 
     private function scheduleNotificationCheck(): void
     {
-        // Schedule the job to run daily at midnight
-        $now = new \DateTime();
-        $nextRun = new \DateTime('tomorrow midnight');
-        $delay = $nextRun->getTimestamp() - $now->getTimestamp();
+        // For testing: run every 5 minutes instead of daily
+        $delay = 30; // 5 minutes in seconds
+
+        Craft::info(
+            "Scheduling next content reminder check in {$delay} seconds",
+            __METHOD__
+        );
 
         Queue::push(new jobs\ContentReminderCheckJob(), null, null, $delay);
+
+                // Schedule the job to run daily at midnight - TODO: Add this back in when finished testing
+                // $now = new \DateTime();
+                // $nextRun = new \DateTime('tomorrow midnight');
+                // $delay = $nextRun->getTimestamp() - $now->getTimestamp();
+        
+                // Queue::push(new jobs\ContentReminderCheckJob(), null, null, $delay);
     }
 
     /**
