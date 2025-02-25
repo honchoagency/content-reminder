@@ -88,50 +88,11 @@ class Install extends Migration
             Craft::error('Error in content-reminder plugin installation: ' . $e->getMessage() . "\n" . $e->getTraceAsString(), __METHOD__);
         }
 
-        if (!$this->db->tableExists('{{%ContentReminder_history}}')) {
-            $this->createTable('{{%ContentReminder_history}}', [
-                'id' => $this->primaryKey(),
-                'sectionId' => $this->integer()->notNull(),
-                'userId' => $this->integer(),
-                'notes' => $this->text(),
-                'dateCreated' => $this->dateTime()->notNull(),
-                'dateUpdated' => $this->dateTime()->notNull(),
-                'uid' => $this->uid(),
-            ]);
-
-            $this->createIndex(
-                null,
-                '{{%ContentReminder_history}}',
-                ['sectionId']
-            );
-
-            $this->addForeignKey(
-                null,
-                '{{%ContentReminder_history}}',
-                'sectionId',
-                Table::SECTIONS,
-                'id',
-                'CASCADE',
-                'CASCADE'
-            );
-
-            $this->addForeignKey(
-                null,
-                '{{%ContentReminder_history}}',
-                'userId',
-                Table::USERS,
-                'id',
-                'SET NULL',
-                'CASCADE'
-            );
-        }
-
         return true;
     }
 
     public function safeDown(): bool
     {
-        $this->dropTableIfExists('{{%ContentReminder_history}}');
         $this->dropTableIfExists('{{%ContentReminder_sections}}');
 
         return true;

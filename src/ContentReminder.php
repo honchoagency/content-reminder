@@ -10,9 +10,7 @@ use craft\elements\Entry;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\helpers\Queue;
-use craft\queue\BaseJob;
 use craft\services\Dashboard;
-use craft\services\Plugins;
 use craft\web\UrlManager;
 use honchoagency\contentreminder\behaviors\EntryBehavior;
 use honchoagency\contentreminder\models\Settings;
@@ -102,17 +100,14 @@ class ContentReminder extends Plugin
                     });
 
                     if (!empty($warningSections)) {
-                        $alertHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2zm0-6h2v4h-2z" fill="#CF1124"/>
-                        </svg>';
-
                         $numSections = count($warningSections);
                         $message = $numSections === 1
-                            ? "1 section needs review soon"
-                            : "$numSections sections need review soon";
+                            ? "<strong>  Content Reminder:</strong> 1 section needs reviewing"
+                            : "$numSections <strong>  Content Reminder:</strong> sections need reviewing";
 
                         $url = Craft::$app->getConfig()->getGeneral()->cpTrigger . '/content-reminder';
-                        $alertHTML .= ' <strong>' . $message . '</strong>';
+                        $alertHTML = '<span data-icon="alert"></span>';
+                        $alertHTML .= $message;
                         $alertHTML .= ' <a href="/' . $url . '" class="go">' . Craft::t('content-reminder', 'View sections') . ' →</a>';
 
                         $event->alerts[] = [
@@ -124,22 +119,14 @@ class ContentReminder extends Plugin
             );
         }
 
-        // Schedule daily notification check
-        Event::on(
-            Plugins::class,
-            Plugins::EVENT_AFTER_INSTALL_PLUGIN,
-            function() {
-                $this->scheduleNotificationCheck();
-            }
-        );
-
-        $this->attachEventHandlers();
-
-        // Any code that creates an element query or loads Twig should be deferred until
-        // after Craft is fully initialized, to avoid conflicts with other plugins/modules
-        Craft::$app->onInit(function() {
-            // ...
-        });
+        // Schedule daily notification check if not already scheduled
+        Craft::info('Checking if content reminder job needs scheduling...', __METHOD__);
+        if (!$this->isJobScheduled()) {
+            Craft::info('No existing job found, scheduling new one...', __METHOD__);
+            $this->scheduleNotificationCheck();
+        } else {
+            Craft::info('Content reminder job already scheduled', __METHOD__);
+        }
     }
 
     public static function config(): array
@@ -179,30 +166,33 @@ class ContentReminder extends Plugin
         ]);
     }
 
-    private function attachEventHandlers(): void
+    private function isJobScheduled(): bool
     {
-        // Register event handlers here ...
-        // (see https://craftcms.com/docs/5.x/extend/events.html to get started)
+        $jobs = Craft::$app->queue->getJobInfo();
+        
+        foreach ($jobs as $job) {
+            if ($job['description'] === Craft::t('content-reminder', 'Checking for content that needs review')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function scheduleNotificationCheck(): void
     {
-        // For testing: run every 5 minutes instead of daily
-        $delay = 30; // 5 minutes in seconds
+        // Schedule the job to run daily at midnight
+        $now = new \DateTime();
+        $nextRun = new \DateTime('tomorrow midnight');
+        $delay = $nextRun->getTimestamp() - $now->getTimestamp();
 
         Craft::info(
-            "Scheduling next content reminder check in {$delay} seconds",
+            "Scheduling content reminder check job for: " . $nextRun->format('Y-m-d H:i:s') . 
+            " (delay: {$delay} seconds)",
             __METHOD__
         );
 
         Queue::push(new jobs\ContentReminderCheckJob(), null, null, $delay);
-
-                // Schedule the job to run daily at midnight - TODO: Add this back in when finished testing
-                // $now = new \DateTime();
-                // $nextRun = new \DateTime('tomorrow midnight');
-                // $delay = $nextRun->getTimestamp() - $now->getTimestamp();
-        
-                // Queue::push(new jobs\ContentReminderCheckJob(), null, null, $delay);
     }
 
     /**
@@ -212,9 +202,15 @@ class ContentReminder extends Plugin
     {
         parent::install();
 
+        Craft::info('Installing Content Reminder plugin...', __METHOD__);
+
         // Run the install migration
         $migration = new \honchoagency\contentreminder\migrations\Install();
         $migration->up();
+
+        // Schedule the initial notification check
+        Craft::info('Scheduling initial content reminder check...', __METHOD__);
+        $this->scheduleNotificationCheck();
     }
 
     public function getConsoleControllerNamespace(): string
