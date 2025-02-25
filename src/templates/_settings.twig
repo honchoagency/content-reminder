@@ -101,6 +101,11 @@
     <h2>{{ "Section-Specific Settings"|t('content-reminder') }}</h2>
     <div class="readable">
         <p>{{ "Configure different review periods for specific sections. Leave empty to use the default review period."|t('content-reminder') }}</p>
+        <div class="buttons">
+            <button type="button" class="btn" data-action="content-reminder/sections/sync">
+                {{ "Sync Sections"|t('content-reminder') }}
+            </button>
+        </div>
     </div>
 
     {% for section in craft.app.entries.getAllSections() %}
@@ -130,4 +135,27 @@ h2 {
 .readable {
     margin-bottom: 24px;
 }
+
+.buttons {
+    margin-top: 1em;
+}
 {% endcss %}
+
+{% js %}
+$(document).ready(function() {
+    $('[data-action="content-reminder/sections/sync"]').on('click', function() {
+        var $btn = $(this);
+        $btn.addClass('loading');
+
+        Craft.postActionRequest('content-reminder/sections/sync', {}, function(response) {
+            $btn.removeClass('loading');
+            if (response.success) {
+                Craft.cp.displayNotice(Craft.t('content-reminder', 'Sections synced successfully'));
+                window.location.reload();
+            } else {
+                Craft.cp.displayError(Craft.t('content-reminder', 'Could not sync sections'));
+            }
+        });
+    });
+});
+{% endjs %}

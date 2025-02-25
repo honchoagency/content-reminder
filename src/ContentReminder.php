@@ -17,6 +17,8 @@ use honchoagency\contentreminder\models\Settings;
 use honchoagency\contentreminder\services\NotificationService;
 use honchoagency\contentreminder\widgets\ReviewDashboardWidget;
 use yii\base\Event;
+use craft\events\PluginEvent;
+use craft\services\Plugins;
 
 /**
  * content-reminder plugin
@@ -43,6 +45,33 @@ class ContentReminder extends Plugin
         } else {
             $this->controllerNamespace = 'honchoagency\contentreminder\controllers';
         }
+
+        // Listen for plugin settings being saved
+        Event::on(
+            Plugins::class,
+            Plugins::EVENT_AFTER_SAVE_PLUGIN_SETTINGS,
+            function(PluginEvent $event) {
+                if ($event->plugin === $this) {
+                    $settings = $this->getSettings();
+                    $sections = Craft::$app->entries->getAllSections();
+
+                    foreach ($sections as $section) {
+                        $reviewSection = $this->sections->getBySection($section->id);
+                        if ($reviewSection) {
+                            // Get section-specific review days or fall back to default
+                            $reviewDays = isset($settings->sectionReviewDays[$section->handle]) && $settings->sectionReviewDays[$section->handle] !== '' 
+                                ? (int)$settings->sectionReviewDays[$section->handle] 
+                                : (int)$settings->defaultReviewDays;
+                            
+                            // Only update if the review days have changed
+                            if ($reviewDays != $reviewSection->reviewDays) {
+                                $this->sections->updateReviewPeriod($section->id, $reviewDays);
+                            }
+                        }
+                    }
+                }
+            }
+        );
 
         // Register the widget
         Event::on(

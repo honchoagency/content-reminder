@@ -79,4 +79,19 @@ class SectionsController extends Controller
 
         return $this->asJson(['success' => false, 'error' => 'Could not update review period.']);
     }
+
+    public function actionSync(): Response
+    {
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+
+        // Check permissions
+        $this->requirePermission('accessPlugin-content-reminder');
+
+        if (ContentReminder::getInstance()->sections->syncSections()) {
+            return $this->asJson(['success' => true]);
+        }
+
+        return $this->asJson(['success' => false, 'error' => 'Could not sync sections.']);
+    }
 }
