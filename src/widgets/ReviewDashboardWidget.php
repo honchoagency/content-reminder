@@ -6,6 +6,7 @@ use honchoagency\contentreminder\ContentReminder;
 use honchoagency\contentreminder\models\ContentReminderSection;
 use Craft;
 use craft\base\Widget;
+use craft\db\Query;
 use DateTime;
 
 class ReviewDashboardWidget extends Widget
@@ -38,7 +39,7 @@ class ReviewDashboardWidget extends Widget
         $now = (new DateTime())->format('Y-m-d H:i:s');
         $warningDate = (new DateTime())->modify("+$warningThreshold days")->format('Y-m-d H:i:s');
 
-        $results = (new \craft\db\Query())
+        $results = (new Query())
             ->select([
                 'id',
                 'sectionId',

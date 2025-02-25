@@ -2,23 +2,23 @@
 
 namespace honchoagency\contentreminder;
 
-use honchoagency\contentreminder\behaviors\EntryBehavior;
 use Craft;
-use honchoagency\contentreminder\models\Settings;
 use craft\base\Model;
 use craft\base\Plugin;
-use craft\elements\Entry;
-use craft\events\RegisterUrlRulesEvent;
-use craft\web\UrlManager;
-use yii\base\Event;
 use craft\base\Widget;
+use craft\elements\Entry;
 use craft\events\RegisterComponentTypesEvent;
-use honchoagency\contentreminder\widgets\ReminderDashboardWidget;
-use craft\services\Dashboard;
-use honchoagency\contentreminder\services\NotificationService;
+use craft\events\RegisterUrlRulesEvent;
 use craft\helpers\Queue;
 use craft\queue\BaseJob;
+use craft\services\Dashboard;
 use craft\services\Plugins;
+use craft\web\UrlManager;
+use honchoagency\contentreminder\behaviors\EntryBehavior;
+use honchoagency\contentreminder\models\Settings;
+use honchoagency\contentreminder\services\NotificationService;
+use honchoagency\contentreminder\widgets\ReviewDashboardWidget;
+use yii\base\Event;
 
 /**
  * content-reminder plugin
@@ -51,7 +51,7 @@ class ContentReminder extends Plugin
             Dashboard::class,
             Dashboard::EVENT_REGISTER_WIDGET_TYPES,
             function(RegisterComponentTypesEvent $event) {
-                $event->types[] = ReminderDashboardWidget::class;
+                $event->types[] = ReviewDashboardWidget::class;
             }
         );
 
@@ -88,7 +88,7 @@ class ContentReminder extends Plugin
                     }
 
                     // Get overdue sections
-                    $widget = new ReminderDashboardWidget();
+                    $widget = new ReviewDashboardWidget();
                     $sections = $widget->getSectionsNeedingReview();
                     $overdueSections = array_filter($sections, function($section) {
                         return $section->nextReviewDate <= new \DateTime();
@@ -180,25 +180,12 @@ class ContentReminder extends Plugin
 
     private function scheduleNotificationCheck(): void
     {
-        // Create a job to check for content that needs review
-        $job = new class extends BaseJob {
-            public function execute($queue): void
-            {
-                ContentReminder::getInstance()->notifications->sendPendingReviewNotifications();
-            }
-
-            public function getDescription(): string
-            {
-                return Craft::t('content-reminder', 'Checking for content that needs review');
-            }
-        };
-
         // Schedule the job to run daily at midnight
         $now = new \DateTime();
         $nextRun = new \DateTime('tomorrow midnight');
         $delay = $nextRun->getTimestamp() - $now->getTimestamp();
 
-        Queue::push($job, null, null, $delay);
+        Queue::push(new jobs\ContentReminderCheckJob(), null, null, $delay);
     }
 
     /**
