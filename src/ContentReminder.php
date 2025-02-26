@@ -132,7 +132,7 @@ class ContentReminder extends Plugin
                         $numSections = count($warningSections);
                         $message = $numSections === 1
                             ? "<strong>  Content Reminder:</strong> 1 section needs reviewing"
-                            : "$numSections <strong>  Content Reminder:</strong> sections need reviewing";
+                            : "<strong>  Content Reminder:</strong>  " . $numSections . " sections need reviewing";
 
                         $url = Craft::$app->getConfig()->getGeneral()->cpTrigger . '/content-reminder';
                         $alertHTML = '<span data-icon="alert"></span>';

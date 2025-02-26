@@ -41,8 +41,8 @@ class NotificationService extends Component
         }
 
 
-        // $baseUrl = getenv('PRIMARY_SITE_URL');
-        $baseUrl = UrlHelper::cpUrl('content-reminder');
+        $baseUrl = getenv('PRIMARY_SITE_URL');
+        // $baseUrl = UrlHelper::cpUrl('content-reminder');
         $cpTrigger = Craft::$app->getConfig()->getGeneral()->cpTrigger;
         $dashboardUrl = rtrim($baseUrl, '/') . '/' . trim($cpTrigger, '/') . '/content-reminder';
 
@@ -57,11 +57,12 @@ class NotificationService extends Component
                 "{siteName}: Content Review Needed\n\n" .
                 "The following sections need to be reviewed:\n" .
                 "{sections}\n" .
-                "\n<{url}|View Content Review Dashboard>",
+                "\n<{baseUrl}/admin/content-reminder|View Content Review Dashboard>",
                 [
                     'siteName' => Craft::$app->sites->primarySite->name,
                     'sections' => $sectionsList,
-                    'url' => $baseUrl
+                    'url' => $baseUrl,
+                    'baseUrl' => rtrim($baseUrl, '/')
                 ]
             )
         ];
@@ -100,37 +101,19 @@ class NotificationService extends Component
     }
 
     /**
-     * Send email notification for a section that needs review
+     * Send email notification for sections that need review
      */
-    public function sendSectionReviewNotification(ContentReminderSection $section): void
+    private function sendEmailNotification(array $sections): void
     {
         $settings = ContentReminder::getInstance()->getSettings();
-
-        // Send email notifications if enabled
-        if ($settings->enableEmailNotifications) {
-            $this->sendEmailNotification($section);
-        }
-
-        // Send Slack notifications if enabled
-        if ($settings->enableSlackNotifications) {
-            $this->sendSlackNotification($section);
-        }
-    }
-
-    /**
-     * Send email notification for a section that needs review
-     */
-    private function sendEmailNotification(ContentReminderSection $section): void
-    {
-        $settings = ContentReminder::getInstance()->getSettings();
-
-        // Get the section's content manager/owner
-        $reviewer = $section->getReviewer();
         $recipients = [];
 
-        // Add the last reviewer if available
-        if ($reviewer) {
-            $recipients[] = $reviewer->email;
+        // Collect all unique recipients from all sections
+        foreach ($sections as $section) {
+            $reviewer = $section->getReviewer();
+            if ($reviewer) {
+                $recipients[] = $reviewer->email;
+            }
         }
 
         // Add any additional configured recipients
@@ -151,15 +134,25 @@ class NotificationService extends Component
 
         // Prepare email content
         $subject = Craft::t('content-reminder',
-            '{section} needs content review',
-            ['section' => $section->section->name]
+            '{siteName}: Content Review Needed',
+            ['siteName' => Craft::$app->sites->primarySite->name]
         );
 
+        $baseUrl = getenv('PRIMARY_SITE_URL');
+        $cpTrigger = Craft::$app->getConfig()->getGeneral()->cpTrigger;
+        $dashboardUrl = rtrim($baseUrl, '/') . '/' . trim($cpTrigger, '/') . '/content-reminder';
+
+        // Ensure URL starts with https://
+        if (!str_starts_with($dashboardUrl, 'https://')) {
+            $dashboardUrl = 'https://' . ltrim($dashboardUrl, '/');
+        }
+
         $body = Craft::$app->getView()->renderTemplate(
-            'content-reminder/_mail/section-review-notification',
+            'content-reminder/_mail/sections-review-notification',
             [
-                'section' => $section,
-                'cpUrl' => Craft::$app->getConfig()->getGeneral()->cpTrigger . '/content-reminder',
+                'sections' => $sections,
+                'cpUrl' => $dashboardUrl,
+                'siteName' => Craft::$app->sites->primarySite->name
             ]
         );
 
@@ -171,6 +164,24 @@ class NotificationService extends Component
         $message->setHtmlBody($body);
 
         Craft::$app->getMailer()->send($message);
+    }
+
+    /**
+     * Send Slack notification for a section that needs review
+     */
+    public function sendSectionReviewNotification(ContentReminderSection $section): void
+    {
+        $settings = ContentReminder::getInstance()->getSettings();
+
+        // Send email notifications if enabled
+        if ($settings->enableEmailNotifications) {
+            $this->sendEmailNotification([$section]);
+        }
+
+        // Send Slack notifications if enabled
+        if ($settings->enableSlackNotifications) {
+            $this->sendSlackNotification([$section]);
+        }
     }
 
     /**
@@ -207,17 +218,20 @@ class NotificationService extends Component
             $section = ContentReminder::getInstance()->sections->getBySection($sectionData['id']);
             if ($section) {
                 $sectionsNeedingReview[] = $section;
-
-                // Send individual email notifications
-                if ($settings->enableEmailNotifications) {
-                    $this->sendEmailNotification($section);
-                }
             }
         }
 
-        // Send a single Slack notification for all sections
-        if ($settings->enableSlackNotifications && !empty($sectionsNeedingReview)) {
-            $this->sendSlackNotification($sectionsNeedingReview);
+        // Only send notifications if there are sections needing review
+        if (!empty($sectionsNeedingReview)) {
+            // Send a single email notification for all sections
+            if ($settings->enableEmailNotifications) {
+                $this->sendEmailNotification($sectionsNeedingReview);
+            }
+
+            // Send a single Slack notification for all sections
+            if ($settings->enableSlackNotifications) {
+                $this->sendSlackNotification($sectionsNeedingReview);
+            }
         }
     }
 }

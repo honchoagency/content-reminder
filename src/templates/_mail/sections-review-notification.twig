@@ -1,0 +1,26 @@
+{% set baseUrl = siteUrl ~ cpUrl %}
+
+<p>Hello,</p>
+
+<p>The following sections need to be reviewed:</p>
+
+<ul>
+{% for section in sections %}
+    <li>
+        <strong>{{ section.section.name }}</strong><br>
+        Review Due: {{ section.nextReviewDate|date('medium') }}<br>
+        {% if section.lastReviewedAt %}
+            Last Reviewed: {{ section.lastReviewedAt|date('medium') }} by {{ section.getReviewer() }}
+        {% else %}
+            Never reviewed
+        {% endif %}
+    </li>
+{% endfor %}
+</ul>
+
+<p>
+    <a href="{{ cpUrl }}">View Content Review Dashboard</a>
+</p>
+
+<p>Best regards,<br>
+{{ siteName }}</p> 
