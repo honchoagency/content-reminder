@@ -191,6 +191,7 @@ class NotificationService extends Component
     {
         $settings = ContentReminder::getInstance()->getSettings();
 
+
         // Check if any notifications are enabled
         if (!$settings->enableEmailNotifications && !$settings->enableSlackNotifications) {
             Craft::info('No notification methods are enabled.', __METHOD__);
@@ -200,9 +201,10 @@ class NotificationService extends Component
         $now = new DateTime();
         $warningDate = (new DateTime())->modify("+{$settings->warningThresholdDays} days");
 
+
         // Check sections
         $sections = (new \craft\db\Query())
-            ->select(['id'])
+            ->select(['id', 'sectionId'])
             ->from('{{%ContentReminder_sections}}')
             ->where(['or',
                 ['<=', 'nextReviewDate', $now->format('Y-m-d H:i:s')],
@@ -213,9 +215,10 @@ class NotificationService extends Component
             ])
             ->all();
 
+
         $sectionsNeedingReview = [];
         foreach ($sections as $sectionData) {
-            $section = ContentReminder::getInstance()->sections->getBySection($sectionData['id']);
+            $section = ContentReminder::getInstance()->sections->getBySection($sectionData['sectionId']);
             if ($section) {
                 $sectionsNeedingReview[] = $section;
             }
@@ -225,13 +228,19 @@ class NotificationService extends Component
         if (!empty($sectionsNeedingReview)) {
             // Send a single email notification for all sections
             if ($settings->enableEmailNotifications) {
-                $this->sendEmailNotification($sectionsNeedingReview);
+                try {
+                    $this->sendEmailNotification($sectionsNeedingReview);
+                } catch (\Throwable $e) {
+                    Craft::error('Failed to send email: ' . $e->getMessage(), __METHOD__);
+                }
             }
 
             // Send a single Slack notification for all sections
             if ($settings->enableSlackNotifications) {
                 $this->sendSlackNotification($sectionsNeedingReview);
             }
+        } else {
+            Craft::info('No sections need review at this time', __METHOD__);
         }
     }
 }

@@ -150,12 +150,12 @@ class ContentReminder extends Plugin
 
         // Schedule daily notification check if not already scheduled
         Craft::info('Checking if content reminder job needs scheduling...', __METHOD__);
-        if (!$this->isJobScheduled()) {
-            Craft::info('No existing job found, scheduling new one...', __METHOD__);
-            $this->scheduleNotificationCheck();
-        } else {
-            Craft::info('Content reminder job already scheduled', __METHOD__);
-        }
+        // if (!$this->isJobScheduled()) {
+        //     Craft::info('No existing job found, scheduling new one...', __METHOD__);
+        //     $this->scheduleNotificationCheck();
+        // } else {
+        //     Craft::info('Content reminder job already scheduled', __METHOD__);
+        // }
     }
 
     public static function config(): array
@@ -195,33 +195,37 @@ class ContentReminder extends Plugin
         ]);
     }
 
-    private function isJobScheduled(): bool
-    {
-        $jobs = Craft::$app->queue->getJobInfo();
+    // private function isJobScheduled(): bool
+    // {
+    //     $jobs = Craft::$app->queue->getJobInfo();
+    //     $jobDescription = 'Checking for content that needs review';
         
-        foreach ($jobs as $job) {
-            if ($job['description'] === Craft::t('content-reminder', 'Checking for content that needs review')) {
-                return true;
-            }
-        }
+    //     foreach ($jobs as $job) {
+    //         // Check for exact string match instead of using Craft::t()
+    //         if ($job['description'] === $jobDescription) {
+    //             return true;
+    //         }
+    //     }
 
-        return false;
-    }
+    //     return false;
+    // }
 
     private function scheduleNotificationCheck(): void
     {
-        // Schedule the job to run daily at midnight
+        // Schedule the job to run daily at 9am
         $now = new \DateTime();
-        $nextRun = new \DateTime('tomorrow midnight');
+        $nextRun = new \DateTime('tomorrow 09:00:00');
         $delay = $nextRun->getTimestamp() - $now->getTimestamp();
 
+        // Create new job with specific timestamp
+        $job = new jobs\ContentReminderCheckJob();
+        
         Craft::info(
-            "Scheduling content reminder check job for: " . $nextRun->format('Y-m-d H:i:s') . 
-            " (delay: {$delay} seconds)",
+            "Scheduling content reminder check job for: " . $nextRun->format('Y-m-d H:i:s'),
             __METHOD__
         );
 
-        Queue::push(new jobs\ContentReminderCheckJob(), null, null, $delay);
+        Queue::push($job, null, null, $delay);
     }
 
     /**
